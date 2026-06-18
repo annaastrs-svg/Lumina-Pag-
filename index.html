@@ -1,0 +1,1141 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LUMINA — Tamagotchi Pulsómetro</title>
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=IBM+Plex+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --black: #0A0A0A;
+    --card: #141414;
+    --card2: #1C1C1C;
+    --yellow: #F5C518;
+    --yellow-dim: #B89010;
+    --grey-light: #CECECE;
+    --grey-mid: #888888;
+    --grey-dark: #333333;
+    --border: #2E2E2E;
+    --scanline: rgba(0,0,0,0.18);
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--black);
+    color: var(--grey-light);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    line-height: 1.75;
+    overflow-x: hidden;
+  }
+
+  /* SCANLINES */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      to bottom,
+      transparent 0px,
+      transparent 2px,
+      var(--scanline) 2px,
+      var(--scanline) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.35;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    background: var(--black);
+    border-bottom: 1px solid var(--yellow);
+    padding: 0 2rem;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    z-index: 100;
+    font-family: 'VT323', monospace;
+    font-size: 18px;
+    letter-spacing: 0.08em;
+  }
+  nav .logo { color: var(--yellow); font-size: 22px; margin-right: auto; }
+  nav a { color: var(--grey-mid); text-decoration: none; transition: color 0.15s; }
+  nav a:hover { color: var(--yellow); }
+
+  /* HERO */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    padding: 6rem 2rem 4rem;
+    text-align: center;
+    border-bottom: 2px solid var(--yellow);
+    overflow: hidden;
+  }
+
+  .hero-bg-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 40px 40px;
+    opacity: 0.35;
+  }
+
+  .hero-eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    color: var(--yellow);
+    text-transform: uppercase;
+    margin-bottom: 1.5rem;
+    position: relative;
+  }
+
+  .hero-ascii {
+    font-family: 'VT323', monospace;
+    font-size: clamp(28px, 5vw, 52px);
+    color: var(--yellow);
+    line-height: 1.15;
+    margin-bottom: 1.5rem;
+    position: relative;
+    text-shadow: 0 0 20px rgba(245,197,24,0.4);
+    letter-spacing: 0.05em;
+  }
+
+  .hero h1 {
+    font-family: 'VT323', monospace;
+    font-size: clamp(72px, 14vw, 160px);
+    color: var(--yellow);
+    letter-spacing: 0.05em;
+    line-height: 0.9;
+    position: relative;
+    text-shadow: 4px 4px 0 var(--yellow-dim), 0 0 60px rgba(245,197,24,0.25);
+  }
+
+  .hero-sub {
+    font-size: 13px;
+    color: var(--grey-mid);
+    max-width: 520px;
+    margin: 1.5rem auto 0;
+    position: relative;
+  }
+
+  .hero-badges {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 2.5rem;
+    position: relative;
+  }
+
+  .badge {
+    border: 1px solid var(--yellow);
+    color: var(--yellow);
+    font-family: 'VT323', monospace;
+    font-size: 16px;
+    padding: 4px 14px;
+    letter-spacing: 0.1em;
+    background: transparent;
+  }
+
+  .scroll-hint {
+    position: absolute;
+    bottom: 2rem;
+    font-size: 11px;
+    color: var(--grey-dark);
+    letter-spacing: 0.2em;
+    animation: blink 1.5s step-end infinite;
+  }
+
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+  /* SECTIONS */
+  section {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 5rem 2rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .section-eyebrow {
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    color: var(--yellow);
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+
+  .section-title {
+    font-family: 'VT323', monospace;
+    font-size: clamp(38px, 6vw, 60px);
+    color: var(--grey-light);
+    line-height: 1;
+    margin-bottom: 2rem;
+    letter-spacing: 0.03em;
+  }
+  .section-title span { color: var(--yellow); }
+
+  .prose {
+    color: var(--grey-mid);
+    font-size: 13.5px;
+    line-height: 1.9;
+    max-width: 680px;
+  }
+  .prose strong { color: var(--grey-light); font-weight: 500; }
+  .prose em { color: var(--yellow); font-style: normal; }
+
+  /* PHOTO FRAMES */
+  .photo-frame {
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 8px;
+    position: relative;
+    margin: 2rem 0;
+  }
+  .photo-frame img {
+    width: 100%;
+    display: block;
+    filter: grayscale(20%) contrast(1.05);
+  }
+  .photo-caption {
+    font-size: 10px;
+    color: var(--grey-dark);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-top: 8px;
+    padding: 0 4px;
+  }
+
+  /* TAPE STRIP */
+  .tape {
+    display: inline-block;
+    background: rgba(245,197,24,0.12);
+    border: 1px solid rgba(245,197,24,0.3);
+    color: var(--yellow);
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 2px 16px;
+    margin-bottom: 1.5rem;
+    transform: rotate(-0.5deg);
+    font-family: 'VT323', monospace;
+    font-size: 15px;
+  }
+
+  /* CARD GRID */
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1px;
+    border: 1px solid var(--border);
+    margin: 2rem 0;
+    background: var(--border);
+  }
+  .card {
+    background: var(--card);
+    padding: 1.5rem;
+  }
+  .card-icon {
+    font-family: 'VT323', monospace;
+    font-size: 36px;
+    color: var(--yellow);
+    margin-bottom: 0.5rem;
+  }
+  .card-label {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--grey-dark);
+    text-transform: uppercase;
+    margin-bottom: 0.25rem;
+  }
+  .card-value {
+    font-size: 13px;
+    color: var(--grey-light);
+  }
+
+  /* BOM TABLE */
+  .bom-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 2rem 0;
+    font-size: 12px;
+  }
+  .bom-table th {
+    background: var(--yellow);
+    color: var(--black);
+    font-family: 'VT323', monospace;
+    font-size: 16px;
+    letter-spacing: 0.1em;
+    padding: 8px 12px;
+    text-align: left;
+  }
+  .bom-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--grey-mid);
+    vertical-align: top;
+  }
+  .bom-table tr:nth-child(even) td { background: var(--card2); }
+  .bom-table tr:hover td { background: #1F1F1F; }
+  .bom-table .price { color: var(--yellow); font-family: 'VT323', monospace; font-size: 18px; }
+  .bom-table .total-row td { color: var(--grey-light); border-top: 1px solid var(--yellow); }
+
+  /* PINOUT */
+  .pinout-block {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--yellow);
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+    font-family: 'VT323', monospace;
+    font-size: 20px;
+    color: var(--grey-light);
+    line-height: 1.6;
+  }
+  .pinout-block .conn-title {
+    color: var(--yellow);
+    letter-spacing: 0.1em;
+    margin-bottom: 0.5rem;
+    font-size: 22px;
+  }
+  .pinout-block .pin-row { display: flex; gap: 1rem; }
+  .pinout-block .pin-a { color: var(--yellow); width: 60px; }
+  .pinout-block .pin-sep { color: var(--grey-dark); }
+  .pinout-block .pin-b { color: var(--grey-light); }
+
+  /* CODE BLOCK */
+  .code-wrap {
+    background: var(--card);
+    border: 1px solid var(--border);
+    position: relative;
+    margin: 2rem 0;
+  }
+  .code-header {
+    background: var(--card2);
+    border-bottom: 1px solid var(--border);
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--grey-dark);
+    text-transform: uppercase;
+  }
+  .code-header .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .code-header .dot-y { background: var(--yellow); }
+  .code-header .dot-g { background: var(--grey-dark); }
+  pre {
+    padding: 1.5rem;
+    overflow-x: auto;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    line-height: 1.7;
+    color: var(--grey-mid);
+  }
+  .kw { color: #7EB8FF; }
+  .cm { color: var(--grey-dark); font-style: italic; }
+  .str { color: #A8D8A8; }
+  .num { color: var(--yellow); }
+  .fn { color: #D4A8FF; }
+
+  /* ESTADOS */
+  .states-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    margin: 2rem 0;
+  }
+  .state-card {
+    background: var(--card);
+    padding: 1.5rem;
+    text-align: center;
+  }
+  .state-face {
+    font-family: 'VT323', monospace;
+    font-size: 42px;
+    color: var(--yellow);
+    margin-bottom: 0.5rem;
+    display: block;
+    line-height: 1;
+  }
+  .state-name {
+    font-family: 'VT323', monospace;
+    font-size: 22px;
+    color: var(--grey-light);
+    letter-spacing: 0.1em;
+  }
+  .state-range {
+    font-size: 10px;
+    color: var(--grey-dark);
+    margin-top: 4px;
+    letter-spacing: 0.15em;
+  }
+
+  /* DIFICULTADES */
+  .struggle-list {
+    list-style: none;
+    margin: 1.5rem 0;
+  }
+  .struggle-list li {
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    font-size: 13px;
+    color: var(--grey-mid);
+  }
+  .struggle-list li .num-tag {
+    font-family: 'VT323', monospace;
+    font-size: 28px;
+    color: var(--yellow);
+    min-width: 36px;
+    line-height: 1;
+    margin-top: -2px;
+  }
+  .struggle-list li strong { color: var(--grey-light); display: block; margin-bottom: 2px; }
+
+  /* VOLTAGE TABLE */
+  .volt-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5rem 0;
+    font-size: 12px;
+  }
+  .volt-table th {
+    background: var(--card2);
+    color: var(--yellow);
+    font-family: 'VT323', monospace;
+    font-size: 16px;
+    letter-spacing: 0.1em;
+    padding: 8px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--yellow);
+  }
+  .volt-table td {
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--grey-mid);
+  }
+  .volt-table tr:hover td { background: var(--card2); }
+  .volt-v { color: var(--yellow); font-family: 'VT323', monospace; font-size: 18px; }
+
+  /* PCB placeholder grid */
+  .pcb-mockup {
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 2rem;
+    margin: 2rem 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+  }
+  .pcb-ascii {
+    font-family: 'VT323', monospace;
+    font-size: 16px;
+    color: var(--yellow);
+    line-height: 1.3;
+    letter-spacing: 0.05em;
+    opacity: 0.7;
+  }
+
+  /* FOOTER */
+  footer {
+    border-top: 1px solid var(--yellow);
+    padding: 3rem 2rem;
+    text-align: center;
+    font-family: 'VT323', monospace;
+    font-size: 18px;
+    color: var(--grey-dark);
+    letter-spacing: 0.1em;
+  }
+  footer span { color: var(--yellow); }
+
+  /* GLITCH ANIM on h1 */
+  @keyframes glitch {
+    0%   { text-shadow: 4px 4px 0 var(--yellow-dim), 0 0 60px rgba(245,197,24,0.25); transform: none; }
+    92%  { text-shadow: 4px 4px 0 var(--yellow-dim), 0 0 60px rgba(245,197,24,0.25); transform: none; }
+    93%  { text-shadow: -3px 0 #F00, 3px 0 #00F; transform: translateX(2px); }
+    94%  { text-shadow: 4px 4px 0 var(--yellow-dim), 0 0 60px rgba(245,197,24,0.25); transform: none; }
+    96%  { text-shadow: -2px 0 #F00, 2px 0 #00F; transform: translateX(-1px); }
+    97%  { text-shadow: 4px 4px 0 var(--yellow-dim), 0 0 60px rgba(245,197,24,0.25); transform: none; }
+    100% { text-shadow: 4px 4px 0 var(--yellow-dim), 0 0 60px rgba(245,197,24,0.25); transform: none; }
+  }
+  .hero h1 { animation: glitch 7s infinite; }
+
+  /* FACE ANIMATION */
+  @keyframes faceCycle {
+    0%,30%   { content: "( u   u )\n  _  \n[STANDBY]"; }
+    31%,33%  { content: "( -   - )\n  _  \n[STANDBY]"; }
+    34%,64%  { content: "( ^   ^ )\n  .  \n[CALMO]"; }
+    65%,66%  { content: "( o   o )\n  .  \n[CALMO]"; }
+    67%,100% { content: "( O   O )\n  o  \n[AGITADO!]"; }
+  }
+
+  /* HIGHLIGHT BAR */
+  .highlight-bar {
+    background: var(--yellow);
+    color: var(--black);
+    font-family: 'VT323', monospace;
+    font-size: 18px;
+    letter-spacing: 0.15em;
+    padding: 10px 20px;
+    display: inline-block;
+    margin: 1.5rem 0;
+  }
+
+  /* WOKWI DEMO */
+  .demo-wrap {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--yellow);
+    padding: 0;
+    margin: 2rem 0;
+    overflow: hidden;
+  }
+  .demo-wrap iframe {
+    width: 100%;
+    height: 400px;
+    border: none;
+    display: block;
+    filter: saturate(0.8) brightness(0.95);
+  }
+  .demo-header {
+    padding: 10px 16px;
+    background: var(--card2);
+    border-bottom: 1px solid var(--border);
+    font-family: 'VT323', monospace;
+    font-size: 18px;
+    color: var(--yellow);
+    letter-spacing: 0.1em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .blink-dot {
+    width: 8px; height: 8px;
+    background: var(--yellow);
+    border-radius: 50%;
+    animation: blink 1s step-end infinite;
+    display: inline-block;
+  }
+
+  /* PHOTO GRID */
+  .photo-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    margin: 2rem 0;
+  }
+  .photo-grid .photo-frame { margin: 0; border: none; }
+
+  /* SPECS ROW */
+  .spec-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 12.5px;
+  }
+  .spec-row .spec-key { color: var(--grey-dark); letter-spacing: 0.1em; }
+  .spec-row .spec-val { color: var(--grey-light); text-align: right; }
+  .spec-row .spec-val.accent { color: var(--yellow); font-family: 'VT323', monospace; font-size: 18px; }
+
+  @media (max-width: 600px) {
+    nav a { display: none; }
+    .states-row { grid-template-columns: 1fr; }
+    .photo-grid { grid-template-columns: 1fr; }
+    pre { font-size: 10px; }
+    .pinout-block { font-size: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <span class="logo">[ LUMINA ]</span>
+  <a href="#idea">Idea</a>
+  <a href="#hardware">Hardware</a>
+  <a href="#ensamblaje">Ensamblaje</a>
+  <a href="#firmware">Firmware</a>
+  <a href="#pcb">PCB</a>
+  <a href="#dificultades">Dificultades</a>
+</nav>
+
+<!-- ═══════════════════════════════════════ HERO ═══════════════════════════════════════ -->
+<section class="hero" style="max-width:100%; padding-top: 5rem;">
+  <div class="hero-bg-grid"></div>
+  <p class="hero-eyebrow">Proyecto de Hardware · 2026</p>
+  <div class="hero-ascii" id="lumina-face">
+    <span id="face-display">( ^ &nbsp; ^ )</span><br>
+    <span id="face-mouth">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.</span><br>
+    <span id="face-state" style="font-size:0.5em; color: var(--grey-mid); letter-spacing: 0.2em">[ CALMO ]</span>
+  </div>
+  <h1>LUMINA</h1>
+  <p class="hero-sub">Un amiguito tipo tamagotchi que mide tu pulso y reacciona a cómo te sientes.</p>
+  <div class="hero-badges">
+    <span class="badge">ESP32</span>
+    <span class="badge">MAX30102</span>
+    <span class="badge">OLED 0.96"</span>
+    <span class="badge">BUZZER</span>
+    <span class="badge">PCB Custom</span>
+  </div>
+  <span class="scroll-hint">▼ scroll</span>
+</section>
+
+<!-- ═══════════════════════════════════════ IDEA ═══════════════════════════════════════ -->
+<section id="idea">
+  <p class="section-eyebrow">01 </p>
+  <h2 class="section-title">¿Que es lumina <span> y como funciona</h2>
+
+  <div class="tape">Que y Por que?</div>
+
+  <p class="prose">
+   
+    <br><br>
+
+    <br><br>
+     Lumina mide tu ritmo cardíaco y te dice, con expresiones animadas y sonidos, si estás tranquilo o si necesitas respirar profundo. <strong><br>Parte oxímetro, parte tamagotchi. :B <br> <br> Lumina es una maquina de estados y es en base a tu pulso, y esta basado en Healthline.com </strong>
+  </p>
+
+  <div class="photo-frame" style="max-width:600px;">
+    <img src="https://github.com/user-attachments/assets/ecdd686c-7f44-4e8b-acce-314fbf039b7a" alt="Lumina device front view" onerror="this.style.background='var(--card2)'; this.style.height='280px'; this.alt='[foto del dispositivo]'">
+    <p class="photo-caption">Fig. 01 — Vista frontal del dispositivo Lumina terminado</p>
+  </div>
+
+  <div class="card-grid">
+    <div class="card">
+      <div class="card-icon">♥</div>
+      <div class="card-label">función principal</div>
+      <div class="card-value">Mide BPM en tiempo real con el sensor MAX30102</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">( ^ ^ )</div>
+      <div class="card-label">interfaz</div>
+      <div class="card-value">Pantalla OLED con cara animada que refleja tu estado emocional</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">♪</div>
+      <div class="card-label">audio</div>
+      <div class="card-value">Buzzer sincronizado con cada latido detectado — como un radar</div>
+    </div>
+    
+  </div>
+
+  <div class="states-row">
+    <div class="state-card">
+      <span class="state-face" id="s1">u &nbsp; u</span>
+      <div class="state-name">STANDBY</div>
+      <div class="state-range">sin dedo detectado</div>
+    </div>
+    <div class="state-card">
+      <span class="state-face">^ &nbsp; ^</span>
+      <div class="state-name">CALMADO</div>
+      <div class="state-range">≤ 100 BPM</div>
+    </div>
+    <div class="state-card">
+      <span class="state-face">O &nbsp; O</span>
+      <div class="state-name">AGITADO</div>
+      <div class="state-range">&gt; 100 BPM</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ HARDWARE ═══════════════════════════════════════ -->
+<section id="hardware">
+  <p class="section-eyebrow"></p> hardware</p>
+  <h2 class="section-title">Componentes & <span>BOM</span></h2>
+
+  <p class="prose" style="margin-bottom: 2rem;">Todos los componentes fueron elegidos pensando en tamaño mínimo y precio razonable. El costo total del proyecto ronda los <em>$8–10 USD</em>.</p>
+
+  <table class="bom-table">
+    <thead>
+      <tr>
+        <th>Componente</th>
+        <th>Función</th>
+        <th>Cant.</th>
+        <th>Precio</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong style="color:var(--grey-light)">ESP32</strong></td>
+        <td>Microcontrolador principal, WiFi/BT integrado, ESP32 generico</td>
+        <td>1</td>
+        <td class="price">$9.56 </td>
+      </tr>
+      <tr>
+        <td><strong style="color:var(--grey-light)">OLED 0.96" SSD1306</strong></td>
+        <td>Pantalla que muestra la cara animada de Lumina y los BPM </td>
+        <td>1</td>
+        <td class="price">$5.36</td>
+      </tr>
+      <tr>
+        <td><strong style="color:var(--grey-light)">MAX30102 (GY-MAX30102)</strong></td>
+        <td>Sensor de pulso cardíaco por luz infrarroja </td>
+        <td>1</td>
+        <td class="price">$3.69</td>
+      </tr>
+      <tr>
+        <td><strong style="color:var(--grey-light)">Buzzer Pasivo 3.8kHz</strong></td>
+        <td>Feedback sonoro — pitido con cada latido detectado</td>
+        <td>1</td>
+        <td class="price">$3.46</td>
+      </tr>
+      <tr>
+        <td><strong style="color:var(--grey-light)">Push Button</strong></td>
+        <td>Interacción del usuario ( reset)</td>
+        <td>20</td>
+        <td class="price">$9.56</td>
+      </tr>
+      <tr>
+        <td><strong style="color:var(--grey-light)">PCB Custom</strong></td>
+        <td>PCB diseñada a medida para todo el sistema</td>
+        <td>1</td>
+        <td class="price">~$1.00</td>
+      </tr>
+      <tr class="total-row">
+        <td colspan="3"><strong>TOTAL ESTIMADO</strong></td>
+        <td class="price">~$31.63</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="highlight-bar">◈ BUS I2C COMPARTIDO — OLED + MAX30102 en los mismos pines SDA/SCL</div>
+
+  <p class="prose">El ESP32-C3 Super Mini fue elegido por su tamaño ultra compacto y porque corre el mismo código Arduino que cualquier ESP32 estándar. El bus I2C permite conectar la pantalla y el sensor en <strong>solo 2 pines de datos</strong>, dejando el resto libre.</p>
+
+  <h3 style="font-family:'VT323',monospace; font-size:28px; color:var(--grey-light); margin: 2rem 0 1rem; letter-spacing:0.05em;">Voltajes del Sistema</h3>
+
+  <table class="volt-table">
+    <thead>
+      <tr>
+        <th>Componente</th>
+        <th>Voltaje Operativo</th>
+        <th>Fuente</th>
+        <th>Notas</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>ESP32</td>
+        <td class="volt-v">3.3V / 5V</td>
+        <td>USB-C / batería LiPo</td>
+        <td>Regulador interno a 3.3V</td>
+      </tr>
+      <tr>
+        <td>OLED SSD1306</td>
+        <td class="volt-v">3.3V</td>
+        <td>Pin 3V3 del ESP32</td>
+        <td>No conectar a 5V — puede dañar el panel</td>
+      </tr>
+      <tr>
+        <td>MAX30102</td>
+        <td class="volt-v">3.3V</td>
+        <td>Pin 3V3 del ESP32</td>
+        <td>I2C a 3.3V, velocidad Fast (400kHz)</td>
+      </tr>
+      <tr>
+        <td>Buzzer Pasivo</td>
+        <td class="volt-v">3.3V</td>
+        <td>GPIO D5</td>
+        <td>Controlado por PWM (función tone())</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══════════════════════════════════════ ENSAMBLAJE ═══════════════════════════════════════ -->
+<section id="ensamblaje">
+  <p class="section-eyebrow"> ensamblaje</p>
+  <h2 class="section-title">Cableado & <span>Pines</span></h2>
+
+  <p class="prose" style="margin-bottom:2rem;">Todo el sistema comparte la alimentación de 3.3V del ESP32. El bus I²C (SDA/SCL) conecta en paralelo la pantalla OLED y el sensor de pulso — sin conflicto porque tienen direcciones I²C distintas (0x3C y 0x57).</p>
+
+  <div class="pinout-block">
+    <div class="conn-title">▸ ESP32 ↔ MAX30102</div>
+    <div class="pin-row"><span class="pin-a">3V3</span><span class="pin-sep">——</span><span class="pin-b">VIN</span></div>
+    <div class="pin-row"><span class="pin-a">GND</span><span class="pin-sep">——</span><span class="pin-b">GND</span></div>
+    <div class="pin-row"><span class="pin-a">GPIO 21</span><span class="pin-sep">——</span><span class="pin-b">SCL</span></div>
+    <div class="pin-row"><span class="pin-a">GPIO 22</span><span class="pin-sep">——</span><span class="pin-b">SDA</span></div>
+  </div>
+
+  <div class="pinout-block">
+    <div class="conn-title">▸ ESP32 ↔ OLED 0.96</div>
+    <div class="pin-row"><span class="pin-a">3V3</span><span class="pin-sep">——</span><span class="pin-b">3V3</span></div>
+    <div class="pin-row"><span class="pin-a">GND</span><span class="pin-sep">——</span><span class="pin-b">GND</span></div>
+    <div class="pin-row"><span class="pin-a">GPIO 21</span><span class="pin-sep">——</span><span class="pin-b">SCK (SCL)</span></div>
+    <div class="pin-row"><span class="pin-a">GPIO 22</span><span class="pin-sep">——</span><span class="pin-b">SDA</span></div>
+  </div>
+
+  <div class="pinout-block">
+    <div class="conn-title">▸ ESP32 ↔ Buzzer Pasivo</div>
+    <div class="pin-row"><span class="pin-a">GND</span><span class="pin-sep">——</span><span class="pin-b">GND (–)</span></div>
+    <div class="pin-row"><span class="pin-a">GPIO D5</span><span class="pin-sep">——</span><span class="pin-b">S (señal)</span></div>
+  </div>
+
+  <div class="photo-grid">
+    <div class="photo-frame">
+      <img src="WhatsApp Image 2026-06-18 at 5.56.05 PM (1).jpeg" alt="Lumina wiring" onerror="this.style.background='var(--card2)'; this.style.height='240px';">
+      <p class="photo-caption"> Cableado y componentes del sistema</p>
+    </div>
+    <div class="photo-frame">
+      <img src="WhatsApp Image 2026-06-18 at 5.56.05 PM.jpeg" alt="Lumina final" onerror="this.style.background='var(--card2)'; this.style.height='240px';">
+      <p class="photo-caption"> Dispositivo ensamblado, vista lateral</p>
+    </div>
+  </div>
+
+  <div class="spec-row"><span class="spec-key">Protocolo de comunicación</span><span class="spec-val accent">I2C</span></div>
+  <div class="spec-row"><span class="spec-key">Velocidad I2C</span><span class="spec-val accent">400 kHz (Fast Mode)</span></div>
+  <div class="spec-row"><span class="spec-key">Dirección I2C — OLED</span><span class="spec-val">0x3C</span></div>
+  <div class="spec-row"><span class="spec-key">Dirección I2C — MAX30102</span><span class="spec-val">0x57</span></div>
+  <div class="spec-row"><span class="spec-key">Pin buzzer</span><span class="spec-val accent">GPIO D5 (PWM)</span></div>
+  <div class="spec-row"><span class="spec-key">Frecuencia buzzer — calmo</span><span class="spec-val">1200 Hz</span></div>
+  <div class="spec-row"><span class="spec-key">Frecuencia buzzer — agitado</span><span class="spec-val">1800 Hz (alerta)</span></div>
+  <div class="spec-row"><span class="spec-key">Duración pitido</span><span class="spec-val">40 ms (no bloqueante)</span></div>
+</section>
+
+<!-- ═══════════════════════════════════════ FIRMWARE ═══════════════════════════════════════ -->
+<section id="firmware">
+  <p class="section-eyebrow">firmware</p>
+  <h2 class="section-title">Código & <span>Lógica</span></h2>
+
+  <p class="prose" style="margin-bottom: 2rem;">El firmware corre en Arduino (framework ESP32). El loop principal lee el sensor, aplica un filtro de plausibilidad, promedia con un búfer circular de 6 muestras y despacha el estado emocional — todo sin usar <strong>delay()</strong>, para que la pantalla nunca se congele.</p>
+
+  <div class="card-grid">
+    <div class="card">
+      <div class="card-icon">⊕</div>
+      <div class="card-label">librería principal</div>
+      <div class="card-value">SparkFun MAX3010x Pulse and Proximity Sensor Library</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">◫</div>
+      <div class="card-label">display</div>
+      <div class="card-value">Adafruit SSD1306 + Adafruit GFX</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">≋</div>
+      <div class="card-label">filtro BPM</div>
+      <div class="card-value">Solo acepta 45–145 BPM. Buffer circular de 6 muestras. Promedio estable.</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">⏱</div>
+      <div class="card-label">buzzer</div>
+      <div class="card-value">Non-blocking: millis() en vez de delay(). Pitido de 40ms exactos.</div>
+    </div>
+  </div>
+
+  <div class="demo-wrap">
+    <div class="demo-header">
+      <span class="blink-dot"></span>
+      DEMO EN VIVO — WOKWI SIMULATOR (escribe tu emoción en el terminal (ESTA EN ESPAÑOL " feliz, triste, enojado"))
+    </div>
+    <iframe
+      src="https://wokwi.com/projects/463667608955522049"
+      title="Lumina Wokwi Demo"
+      loading="lazy"
+      allow="serial">
+    </iframe>
+  </div>
+
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="dot dot-y"></span>
+      <span class="dot dot-g"></span>
+      <span style="margin-left:8px;">Lumina.ino — loop principal</span>
+    </div>
+    <pre><span class="cm"> Loop principal — no bloqueante</span>
+<span class="kw">void</span> <span class="fn">loop</span>() {
+  <span class="kw">long</span> irValue = particleSensor.<span class="fn">getIR</span>();
+
+  <span class="cm"> Sin dedo → modo standby</span>
+  <span class="kw">if</span> (irValue < <span class="num">50000</span>) {
+    estadoActual = DESCONECTADO;
+    beatAvg = <span class="num">0</span>;
+  } <span class="kw">else</span> {
+    <span class="kw">if</span> (<span class="fn">checkForBeat</span>(irValue) == <span class="kw">true</span>) {
+      <span class="kw">long</span> delta = <span class="fn">millis</span>() - lastBeat;
+      lastBeat = <span class="fn">millis</span>();
+      beatsPerMinute = <span class="num">60</span> / (delta / <span class="num">1000.0</span>);
+
+      <span class="cm"> Filtro de plausibilidad: solo valores humanos reales</span>
+      <span class="kw">if</span> (beatsPerMinute >= <span class="num">45</span> && beatsPerMinute <= <span class="num">145</span>) {
+        rates[rateSpot++] = (byte)beatsPerMinute;
+        rateSpot %= RATE_SIZE; <span class="cm">// Buffer circular</span>
+
+        <span class="kw">long</span> total = <span class="num">0</span>;
+        <span class="kw">for</span> (byte x = <span class="num">0</span>; x < RATE_SIZE; x++) total += rates[x];
+        beatAvg = total / RATE_SIZE; <span class="cm">// Promedio suavizado</span>
+
+        <span class="cm"> Activar buzzer — tono según estado emocional</span>
+        buzzerActivo = <span class="kw">true</span>;
+        tiempoBuzzerEncendido = <span class="fn">millis</span>();
+        <span class="kw">if</span> (beatAvg > <span class="num">100</span>) {
+          <span class="fn">tone</span>(BUZZER_PIN, <span class="num">1800</span>); <span class="cm">// Agudo: alerta</span>
+        } <span class="kw">else</span> {
+          <span class="fn">tone</span>(BUZZER_PIN, <span class="num">1200</span>); <span class="cm">// Normal: calmo</span>
+        }
+      }
+    }
+    <span class="cm">Clasificar estado emocional</span>
+    estadoActual = (beatAvg == <span class="num">0</span>) ? DESCONECTADO
+                 : (beatAvg > <span class="num">100</span>) ? AGITADO : CALMO;
+  }
+
+  <span class="cm"> Apagar buzzer automáticamente a los 40ms</span>
+  <span class="kw">if</span> (buzzerActivo && (<span class="fn">millis</span>() - tiempoBuzzerEncendido > <span class="num">40</span>)) {
+    <span class="fn">noTone</span>(BUZZER_PIN);
+    buzzerActivo = <span class="kw">false</span>;
+  }
+
+  <span class="fn">actualizarPantalla</span>(); <span class="cm">// Siempre re-dibuja</span>
+}</pre>
+  </div>
+
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="dot dot-y"></span>
+      <span class="dot dot-g"></span>
+      <span style="margin-left:8px;">Lumina.ino — actualizarPantalla() (lógica de caras)</span>
+    </div>
+    <pre><span class="kw">void</span> <span class="fn">actualizarPantalla</span>() {
+  display.<span class="fn">clearDisplay</span>();
+
+  <span class="cm">// BPM en tamaño grande (zona inferior)</span>
+  display.<span class="fn">setTextSize</span>(<span class="num">2</span>);
+  display.<span class="fn">setCursor</span>(<span class="num">0</span>, <span class="num">48</span>);
+  display.<span class="fn">print</span>(<span class="str">"BPM:"</span>);
+
+  <span class="kw">switch</span> (estadoActual) {
+    <span class="kw">case</span> CALMO:
+      display.<span class="fn">println</span>(<span class="str">"Lumina: Calmado"</span>);
+      <span class="cm">// Ojos: ^ ^ alternando con o o cada 500ms</span>
+      <span class="kw">if</span> (alternarAnimacion) {
+        display.<span class="fn">print</span>(<span class="str">"^"</span>); display.<span class="fn">print</span>(<span class="str">"^"</span>);
+      } <span class="kw">else</span> {
+        display.<span class="fn">print</span>(<span class="str">"o"</span>); display.<span class="fn">print</span>(<span class="str">"o"</span>);
+      }
+      <span class="kw">break</span>;
+
+    <span class="kw">case</span> AGITADO:
+      display.<span class="fn">println</span>(<span class="str">"!Respira profundo!"</span>);
+      <span class="cm">// Ojos bien abiertos, boca tensa</span>
+      display.<span class="fn">print</span>(<span class="str">"O"</span>); display.<span class="fn">print</span>(<span class="str">"O"</span>);
+      <span class="kw">break</span>;
+
+    <span class="kw">case</span> DESCONECTADO:
+      display.<span class="fn">println</span>(<span class="str">"Modo Standby"</span>);
+      <span class="cm">// Ojos dormidos: u u o guiones</span>
+      <span class="kw">break</span>;
+  }
+  display.<span class="fn">display</span>(); <span class="cm">// Flush al panel físico</span>
+}</pre>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ PCB ═══════════════════════════════════════ -->
+<section id="pcb">
+  <p class="section-eyebrow">  diseño PCB</p>
+  <h2 class="section-title">PCB & <span>CAD</span></h2>
+
+  <p class="prose" style="margin-bottom: 2rem;">La PCB fue diseñada para que todo el sistema quepa en un factor de forma de llavero. El resultado es una placa compacta y ordenada  :B</p>
+
+  <div class="photo-frame">
+    <img src="https://github.com/user-attachments/assets/f8d6664e-515d-40fb-b024-1e66c0d07629" alt="PCB Layout vista superior" onerror="this.style.background='var(--card2)'; this.style.height='320px';">
+    <p class="photo-caption"> Layout de la PCB, vista superior </p>
+  </div>
+
+  <div class="photo-grid">
+    <div class="photo-frame">
+      <img src="https://github.com/user-attachments/assets/0c8afab4-ee76-449f-b949-dbfca0c5bd64" alt="PCB 3D render" onerror="this.style.background='var(--card2)'; this.style.height='220px';">
+      <p class="photo-caption">Render 3D de la PCB</p>
+    </div>
+    <div class="photo-frame">
+      <img src="https://github.com/user-attachments/assets/c5e96094-8055-44e0-92b8-ff0a6cbeaa32" alt="PCB ensamblada" onerror="this.style.background='var(--card2)'; this.style.height='220px';">
+      <p class="photo-caption"> PCB lista para ensamblaje</p>
+    </div>
+  </div>
+
+  <div class="pcb-mockup">
+    <div class="tape" style="transform: rotate(0.8deg);">ESQUEMA DE CONEXIONES</div>
+    <pre class="pcb-ascii">
+  ┌─────────────────────────────────────────┐
+  │           ESP32-C3 SUPER MINI           │
+  │                                         │
+  │  3V3 ──┬── VIN[MAX30102]                │
+  │        └── 3V3[OLED]                    │
+  │                                         │
+  │  GND ──┬── GND[MAX30102]                │
+  │        ├── GND[OLED]                    │
+  │        └── GND[BUZZER]                  │
+  │                                         │
+  │  G21 ──┬── SCL[MAX30102] ──── I2C BUS  │
+  │        └── SCK[OLED]                    │
+  │                                         │
+  │  G22 ──┬── SDA[MAX30102] ──── I2C BUS  │
+  │        └── SDA[OLED]                    │
+  │                                         │
+  │  D5  ──── S[BUZZER]                     │
+  └─────────────────────────────────────────┘
+    </pre>
+  </div>
+
+  <div class="spec-row"><span class="spec-key">Factor de forma</span><span class="spec-val">Llavero / Keychain</span></div>
+  <div class="spec-row"><span class="spec-key">Capas PCB</span><span class="spec-val accent">2 capas</span></div>
+  <div class="spec-row"><span class="spec-key">Software </span><span class="spec-val"> KiCad</span></div>
+  <div class="spec-row"><span class="spec-key">Conector de alimentación</span><span class="spec-val">USB-C (via ESP32)</span></div>
+  <div class="spec-row"><span class="spec-key">Estado</span><span class="spec-val accent">FUNCIONAL :D ✓</span></div>
+</section>
+
+<!-- ═══════════════════════════════════════ DIFICULTADES ═══════════════════════════════════════ -->
+<section id="dificultades">
+  <p class="section-eyebrow">D: lo que salió mal</p>
+  <h2 class="section-title">Dificultades & <span>Aprendizajes</span></h2>
+
+  <p class="prose" style="margin-bottom:2rem;">Por mas sencillo que sea hay dificultades aveces </p>
+
+  <ul class="struggle-list">
+    <li>
+      <span class="num-tag">1</span>
+      <div>
+        <strong>El oxímetro roto de mi v.1 no daba señal limpia</strong>
+        El primer intento fue rescatar el sensor del oxímetro casero con el pin TX del ESP32. Funcionó parcialmente — leía valores, pero eran erráticos e inconsistentes. NO HABIA MANERA DE LEER BPM confiable. La solución fue rendirme y comprar el módulo MAX30102 de verdad.
+      </div>
+    </li>
+    <li>
+      <span class="num-tag">2</span>
+      <div>
+        <strong>BPM con saltos absurdos (40 a 180 en segundos)</strong>
+        Sin filtro, cualquier movimiento del dedo o ruido del sensor disparaba lecturas de 190 BPM o caía a 30. 
+      </div>
+    </li>
+    <li>
+      <span class="num-tag">3</span>
+      <div>
+        <strong>La pantalla se congelaba cuando el buzzer sonaba</strong>
+        El uso de <code style="color:var(--yellow)">delay()</code> para el buzzer bloqueaba el loop entero, haciendo que la OLED dejara de actualizarse. Reescribí el control del buzzer usando <code style="color:var(--yellow)">millis()</code>
+      </div>
+    </li>
+    <li>
+      <span class="num-tag">4</span>
+      <div>
+        <strong>Conflicto de bus I2C entre OLED y MAX30102</strong>
+        Ambos dispositivos comparten SDA y SCL. Al principio, la pantalla y el sensor se interferian. La solución fue inicializar ambos con la dirección I2C correcta (0x3C para OLED, 0x57 para el sensor) 
+      </div>
+    </li>
+    <li>
+
+  <div class="highlight-bar" style="margin-top: 2rem;"> RESULTADO</div>
+</section>
+
+<!-- ═══════════════════════════════════════ FINAL ═══════════════════════════════════════ -->
+<section style="border-bottom: none; text-align: center; padding: 4rem 2rem 6rem;">
+  <p class="section-eyebrow" style="justify-content: center; display: flex;"> fin del documento yeyyy </p>
+  <h2 class="section-title" style="text-align:center;">Lumina <span>Funciona</span></h2>
+  <p class="prose" style="margin: 0 auto; text-align: center;">
+    De un oxímetro roto en un cajón, a un llavero con personalidad.<br>
+    Lumina sabe cuándo estás bien y cuándo necesitas respirar.<br>
+    <em>— Hecho a mano, con mucho sueño y cariño.</em>
+  </p>
+  <div style="margin: 2.5rem auto; max-width:200px;">
+    <div style="font-family:'VT323',monospace; font-size: 48px; color: var(--yellow); text-align:center; line-height:1.2; text-shadow: 0 0 20px rgba(245,197,24,0.4);" id="final-face">
+      ( ^ &nbsp; ^ )<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.
+    </div>
+  </div>
+  <div class="hero-badges" style="justify-content:center;">
+    <a href="https://wokwi.com/projects/463667608955522049" target="_blank" style="text-decoration:none;">
+      <span class="badge" style="cursor:pointer;">▶ PRUEBA LA DEMO</span>
+    </a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <p>LUMINA  &mdash; <span>2026</span> &mdash; Proyecto de Hardware</p>
+  <p style="font-size:14px; margin-top:8px; color: var(--grey-dark);">Hecho con soldador y demasiado tiempo en la madrugada.</p>
+</footer>
+
+<script>
+  // ── FACE ANIMATION on hero ──
+  const faces = {
+    standby: { eyes: 'u &nbsp;&nbsp; u', mouth: '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_', label: '[ STANDBY ]' },
+    calmo:   { eyes: '^ &nbsp;&nbsp; ^', mouth: '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.', label: '[ CALMO ]' },
+    agitado: { eyes: 'O &nbsp;&nbsp; O', mouth: '&nbsp;&nbsp;&nbsp;&nbsp;o', label: '[ AGITADO! ]' },
+  };
+  const faceKeys = ['standby', 'calmo', 'calmo', 'agitado'];
+  let faceIdx = 1;
+  let blinkState = false;
+  const faceEl = document.getElementById('face-display');
+  const mouthEl = document.getElementById('face-mouth');
+  const stateEl = document.getElementById('face-state');
+
+  setInterval(() => {
+    blinkState = !blinkState;
+    const f = faces[faceKeys[faceIdx]];
+    faceEl.innerHTML = blinkState ? f.eyes : (faceKeys[faceIdx] === 'calmo' ? '- &nbsp;&nbsp; -' : f.eyes);
+    mouthEl.innerHTML = f.mouth;
+    stateEl.textContent = f.label;
+  }, 600);
+
+  setInterval(() => {
+    faceIdx = (faceIdx + 1) % faceKeys.length;
+  }, 3000);
+
+  // ── FINAL FACE blinking ──
+  const finalFace = document.getElementById('final-face');
+  let ffBlink = false;
+  setInterval(() => {
+    ffBlink = !ffBlink;
+    finalFace.innerHTML = ffBlink
+      ? '( ^ &nbsp; ^ )<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.'
+      : '( - &nbsp; - )<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.';
+  }, 700);
+
+  // ── SMOOTH SCROLL for nav ──
+  document.querySelectorAll('nav a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      const target = document.querySelector(a.getAttribute('href'));
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+
+  // ── SCROLL-TRIGGERED REVEAL ──
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.style.opacity = '1';
+        e.target.style.transform = 'translateY(0)';
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('section, .card, .photo-frame, .pinout-block').forEach(el => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(20px)';
+    el.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+    observer.observe(el);
+  });
+</script>
+</body>
+</html>
